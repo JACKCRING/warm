@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' *;">
+    <title>实时色温调整 by jackcring.com</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .slider-thumb {
+                @apply appearance-none w-6 h-6 rounded-full bg-red-500 cursor-pointer shadow- transition-all duration-150 hover:scale-110;
+            }
+            .color-display {
+                @apply w-full h-32 rounded-lg transition-all duration-300 ease-in-out shadow-none flex items-center justify-center text-gray-800 font-medium text-lg;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">实时色温对照</h2>
+
+        <div id="colorDisplay" class="color-display bg-white mb-8">
+                <span class="text-gray-600">当前色温：</span>
+                <span id="temperatureValue" class="text-black font-semibold text-xl">5000K</span>
+        </div>
+
+
+
+        <div class="px-2">
+            <input type="range" id="temperatureSlider" min="1000" max="10000" value="5000"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
+            <span>1000K (暖色)</span>
+            <span>10000K (冷色)</span>
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('temperatureSlider');
+        const colorDisplay = document.getElementById('colorDisplay');
+        const temperatureValue = document.getElementById('temperatureValue');
+
+        updateColor(5000);
+
+        slider.addEventListener('input', function () {
+            const temperature = parseInt(this.value);
+            updateColor(temperature);
+        });
+
+        function updateColor(temperature) {
+            temperatureValue.textContent = `${temperature}K`;
+
+            // 将色温(K)转换为RGB颜色
+            // 算法参考: https://tannerhelland.com/2012/09/18/convert-temperature-rgb-algorithm-code.html
+            let red, green, blue;
+            const temp = temperature / 100;
+
+            if (temp <= 66) {
+                red = 255;
+            } else {
+                red = temp - 60;
+                red = 329.698727446 * Math.pow(red, -0.1332047592);
+                red = Math.min(red, 255);
+            }
+
+            // 计算绿色分量
+            if (temp <= 66) {
+                green = temp;
+                green = 99.4708025861 * Math.log(green) - 161.1195681661;
+            } else {
+                green = temp - 60;
+                green = 288.1221695283 * Math.pow(green, -0.0755148492);
+            }
+            green = Math.max(0, Math.min(green, 255));
+
+            if (temp >= 66) {
+                blue = 255;
+            } else if (temp <= 19) {
+                blue = 0;
+            } else {
+                blue = temp - 10;
+                blue = 138.5177312231 * Math.log(blue) - 305.0447927307;
+                blue = Math.max(0, Math.min(blue, 255));
+            }
+
+            const rgbColor = `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`;
+
+            colorDisplay.style.backgroundColor = rgbColor;
+
+            const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+            colorDisplay.style.color = luminance > 0.5 ? '#333333' : '#FFFFFF';
+        }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            #temperatureSlider::-webkit-slider-thumb {
+                @apply slider-thumb;
+            }
+            #temperatureSlider::-moz-range-thumb {
+                @apply slider-thumb;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+
+</html>
